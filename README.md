@@ -20,13 +20,14 @@
 (cd tools/modelconv && uv sync)
 uv run --project tools/modelconv python -m modelconv.fetch_models   # 下载权重到 models/
 uv run --project tools/modelconv python -m modelconv.convert_all    # 转换到 models/coreml/
-python3 tools/package_models.py                                      # 打包到 dist/（zip 和 manifest.json）
+uv run --project tools/modelconv python tools/package_models.py     # 打包到 dist/（zip 和 manifest.json）
 ```
 
 更新鸟名表（需要 SuperPicky 仓库）：
 
 ```sh
-python3 tools/export_species_names.py --db ../SuperPicky/birdid/data/bird_reference.sqlite \
+uv run --project tools/modelconv python tools/export_species_names.py \
+    --db ../SuperPicky/birdid/data/bird_reference.sqlite \
     --out models/birdtrace/species_names.json
 ```
 

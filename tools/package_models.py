@@ -4,7 +4,7 @@
 
 用法（在仓库根目录）::
 
-    python3 tools/package_models.py [--base-url https://…]
+    uv run --project tools/modelconv python tools/package_models.py [--base-url https://…]
 """
 
 import argparse

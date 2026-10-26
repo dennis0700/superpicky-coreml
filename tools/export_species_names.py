@@ -6,7 +6,7 @@ BirdTrace 的输出经 birdtrace_class_map.json 映射到鸟种库类别号（0.
 
 用法（在仓库根目录）::
 
-    python3 tools/export_species_names.py \
+    uv run --project tools/modelconv python tools/export_species_names.py \
         --db ../SuperPicky/birdid/data/bird_reference.sqlite \
         --out models/birdtrace/species_names.json
 
