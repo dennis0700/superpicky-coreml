@@ -40,7 +40,7 @@ jobs:
         run: |
           uv sync --locked
           uv run ruff check .
-          uv run ruff check --config pyproject.toml ../package_models.py ../export_species_names.py
+          uv run ruff check --config pyproject.toml ../package_models.py ../export_species_names.py ../export_regions.py
           uv run pytest
 
       - name: Download weights

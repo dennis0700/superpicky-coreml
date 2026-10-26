@@ -1,6 +1,8 @@
 """把 models/coreml 下的模型连同许可证文件打成 dist/*.zip，并生成 dist/manifest.json（只依赖标准库）。
 
-每个 zip 附带生成的 SOURCE.txt（日期、源码提交、上游权重）。同一个提交重复打包，结果逐字节相同。
+不含模型的数据包（如地区名录 regions）也打成 zip，记在 manifest 的 "data" 里，"package" 是包里的主数据文件；
+"models" 里只有模型，只认 "models" 的旧版 App 不受影响。
+每个 zip 附带生成的 SOURCE.txt（日期、源码提交、上游权重或数据）。同一个提交重复打包，结果逐字节相同。
 
 用法（在仓库根目录）::
 
@@ -101,6 +103,42 @@ SPECS = (
 )
 
 
+@dataclass(frozen=True)
+class DataSpec:
+    """一个要发布的数据包（不含模型），文件都在 models/<name>/ 下。
+
+    Attributes:
+        name: 目录名，同时是 manifest 里的名字。
+        package: 主数据文件名，写进 manifest 的 package 字段。
+        extra_files: 一起打包的其他文件名。
+        license_spdx: 许可证标识。
+        upstream: 上游项目地址。
+        source: 上游数据的出处，写进 SOURCE.txt。
+
+    """
+
+    name: str
+    package: str
+    extra_files: tuple[str, ...]
+    license_spdx: str
+    upstream: str
+    source: str
+
+
+DATA_SPECS = (
+    DataSpec(
+        name="regions",
+        package="regions.json",
+        extra_files=("NOTICE.txt",),
+        license_spdx="AGPL-3.0-only AND LicenseRef-eBird-API-Terms-of-Use",
+        upstream="https://github.com/jamesphotography/SuperPicky",
+        source="SuperPicky birdid/data/ebird_regions.db at commit 75a9321b1771553592bf13a4a3d930264e8cd0a3\n"
+               "                    sha256 1ed0b5859eb4af724d26ee9e131d92ea02012e48143dce2a3b40aacf33f663ce\n"
+               "                    exported with tools/export_regions.py",
+    ),
+)
+
+
 def sha256_of(path: Path) -> str:
     """计算文件的 sha256。
 
@@ -139,6 +177,67 @@ def source_notes(spec: ModelSpec, version: str, date: datetime) -> str:
             f"                    sha256 {weight.sha256}\n")
 
 
+def data_source_notes(spec: DataSpec, version: str, date: datetime) -> str:
+    """生成数据包的 SOURCE.txt：日期、源码版本和上游数据。
+
+    Args:
+        spec: 数据包描述。
+        version: `source_version()` 的结果。
+        date: 源码日期。
+
+    Returns:
+        SOURCE.txt 的内容。
+
+    """
+    return (f"{spec.package}: how this file was made\n\n"
+            f"Date:               {date.date().isoformat()}\n"
+            f"Source version:     superpicky-coreml, {version}\n"
+            f"Upstream data:      {spec.source}\n")
+
+
+def write_zip(files: list[tuple[bytes, str]], target: Path, date: datetime) -> None:
+    """把（内容, 包内路径）按给定顺序写成 zip，所有文件的时间和权限固定。
+
+    Args:
+        files: 要写入的文件。
+        target: zip 路径。
+        date: 用作 zip 内所有文件的时间。
+
+    """
+    DIST.mkdir(exist_ok=True)
+    stamp = max(date.timetuple()[:6], (1980, 1, 1, 0, 0, 0))   # zip 最早只能表示 1980 年 / zip starts at 1980
+    with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as archive:
+        for data, name in files:
+            info = zipfile.ZipInfo(name, date_time=stamp)
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o644 << 16
+            archive.writestr(info, data)
+
+
+def build_data_zip(spec: DataSpec, version: str, date: datetime) -> Path:
+    """把一个数据包的文件打成 zip。
+
+    Args:
+        spec: 数据包描述。
+        version: 源码版本，写进 SOURCE.txt。
+        date: 源码日期，用作 zip 内所有文件的时间。
+
+    Returns:
+        生成的 zip 路径。
+
+    Raises:
+        FileNotFoundError: 任一文件不存在。
+
+    """
+    files = [((MODELS / spec.name / name).read_bytes(), name) for name in (spec.package, *spec.extra_files)]
+    # 数据取自 SuperPicky（AGPL-3.0）的仓库，附上许可证全文 / taken from SuperPicky's AGPL-3.0 repository
+    files.append(((ROOT / "LICENSE").read_bytes(), "LICENSE-AGPL-3.0.txt"))
+    files.append((data_source_notes(spec, version, date).encode(), "SOURCE.txt"))
+    target = DIST / f"{spec.name}.zip"
+    write_zip(files, target, date)
+    return target
+
+
 def build_zip(spec: ModelSpec, version: str, date: datetime) -> Path:
     """把一个模型的 mlpackage 与许可证文件打成 zip，文件顺序和时间固定。
 
@@ -163,23 +262,16 @@ def build_zip(spec: ModelSpec, version: str, date: datetime) -> Path:
     if spec.agpl_data:
         files.append(((ROOT / "LICENSE").read_bytes(), "LICENSE-AGPL-3.0.txt"))
     files.append((source_notes(spec, version, date).encode(), "SOURCE.txt"))
-    DIST.mkdir(exist_ok=True)
     target = DIST / f"{spec.name}-fp16.zip"
-    stamp = max(date.timetuple()[:6], (1980, 1, 1, 0, 0, 0))   # zip 最早只能表示 1980 年 / zip starts at 1980
-    with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as archive:
-        for data, name in files:
-            info = zipfile.ZipInfo(name, date_time=stamp)
-            info.compress_type = zipfile.ZIP_DEFLATED
-            info.external_attr = 0o644 << 16
-            archive.writestr(info, data)
+    write_zip(files, target, date)
     return target
 
 
-def build_entry(spec: ModelSpec, archive: Path, base_url: str | None) -> dict[str, object]:
+def build_entry(spec: ModelSpec | DataSpec, archive: Path, base_url: str | None) -> dict[str, object]:
     """生成 manifest 里的一条记录。
 
     Args:
-        spec: 模型描述。
+        spec: 模型或数据包描述。
         archive: 已打好的 zip。
         base_url: 下载地址前缀；为 None 时不写 url。
 
@@ -220,7 +312,12 @@ def main() -> int:
         archive = build_zip(spec, version, date)
         LOGGER.info("packaged %s (%d bytes)", archive.name, archive.stat().st_size)
         entries.append(build_entry(spec, archive, args.base_url))
-    text = json.dumps({"models": entries}, ensure_ascii=False, indent=2) + "\n"
+    data = []
+    for data_spec in DATA_SPECS:
+        archive = build_data_zip(data_spec, version, date)
+        LOGGER.info("packaged %s (%d bytes)", archive.name, archive.stat().st_size)
+        data.append(build_entry(data_spec, archive, args.base_url))
+    text = json.dumps({"models": entries, "data": data}, ensure_ascii=False, indent=2) + "\n"
     MANIFEST.write_text(text, encoding="utf-8")
     return 0
 

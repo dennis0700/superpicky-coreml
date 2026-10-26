@@ -10,7 +10,13 @@
 | `keypoint` | 鸟眼、鸟喙关键点（SuperEyes） | GPL-3.0 |
 | `flight` | 飞版判断（SuperFlier） | GPL-3.0 |
 
-各模型的许可证和署名见 `models/<模型名>/`，转换代码为 AGPL-3.0（`archs.py` 中的 TOPIQ 部分除外）。
+另外发布一个数据包：
+
+| 数据 | 用途 | 许可证 |
+|---|---|---|
+| `regions` | 各国家、省州的 eBird 鸟种名录（鸟种库类别号），供识鸟时按拍摄地区筛选 | eBird API Terms of Use（仅限非商业）、AGPL-3.0 |
+
+各模型和数据的许可证和署名见 `models/<名字>/`，转换代码为 AGPL-3.0（`archs.py` 中的 TOPIQ 部分除外）。
 
 ## 使用
 
@@ -30,6 +36,16 @@ uv run --project tools/modelconv python tools/export_species_names.py \
     --db ../SuperPicky/birdid/data/bird_reference.sqlite \
     --out models/birdtrace/species_names.json
 ```
+
+更新地区名录（需要 SuperPicky 仓库；更新后改 `models/regions/NOTICE.txt` 和 `tools/package_models.py` 里记录的上游提交）：
+
+```sh
+uv run --project tools/modelconv python tools/export_regions.py \
+    --db ../SuperPicky/birdid/data/ebird_regions.db \
+    --out models/regions/regions.json
+```
+
+`manifest.json` 的 `models` 里是模型，`data` 里是数据包（`package` 为包里的主数据文件）。
 
 ## 发布
 

@@ -1,0 +1,24 @@
+Regional species lists (regions.json)
+
+What it is: for each country and subnational region, the species-database ids (the
+same numbering as birdtrace_class_map.json and species_names.json) of the birds on
+its eBird checklist, so an app can restrict species identification to the region
+where a photo was taken.
+
+Source:    eBird, Cornell Lab of Ornithology (https://ebird.org), via SuperPicky
+           (https://github.com/jamesphotography/SuperPicky): birdid/data/ebird_regions.db
+           at commit 75a9321b1771553592bf13a4a3d930264e8cd0a3 (eBird lists fetched
+           2026-09-17, eBird taxonomy 2025.0).
+Terms:     The underlying eBird data is subject to the eBird API Terms of Use,
+           https://www.birds.cornell.edu/home/ebird-api-terms-of-use/ ; in particular
+           it may be used for non-commercial purposes only and eBird must be credited.
+           The SuperPicky repository it was taken from is licensed under GNU AGPL-3.0
+           (full text in LICENSE-AGPL-3.0.txt).
+
+Changes made by the superpicky-coreml project (AGPL-3.0 section 5(a)): exported from
+ebird_regions.db with tools/export_regions.py on 2026-10-26 (the region boundaries
+are left out; countries and regions without a list are omitted). Export date, source
+version and upstream file also in SOURCE.txt.
+
+superpicky-coreml is an independent project. It is not affiliated with, sponsored or
+endorsed by eBird, the Cornell Lab of Ornithology or SuperPicky.
