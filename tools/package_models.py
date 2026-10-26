@@ -3,6 +3,8 @@
 不含模型的数据包（如地区名录 regions）也打成 zip，记在 manifest 的 "data" 里，"package" 是包里的主数据文件；
 "models" 里只有模型，只认 "models" 的旧版 App 不受影响。
 每个 zip 附带生成的 SOURCE.txt（日期、源码提交、上游权重或数据）。同一个提交重复打包，结果逐字节相同。
+SOURCE.txt 记着提交号，换个提交 zip 的 sha256 就会变；manifest 另记不含 SOURCE.txt 的内容哈希 content_sha256，
+App 用它判断模型或数据是否真的变了。
 
 用法（在仓库根目录）::
 
@@ -177,6 +179,24 @@ def source_notes(spec: ModelSpec, version: str, date: datetime) -> str:
             f"                    sha256 {weight.sha256}\n")
 
 
+def content_sha256(archive: Path) -> str:
+    """压缩包里除 SOURCE.txt 外各文件的内容哈希，与提交号、日期和 zip 本身的格式无关。
+
+    按包内路径排序，每个文件一行「<sha256>  <路径>」加换行（同 sha256sum 的输出），再对整段文字取 sha256。
+
+    Args:
+        archive: 已打好的 zip。
+
+    Returns:
+        小写十六进制摘要。
+
+    """
+    with zipfile.ZipFile(archive) as zipped:
+        lines = [f"{hashlib.sha256(zipped.read(name)).hexdigest()}  {name}\n"
+                 for name in sorted(zipped.namelist()) if name != "SOURCE.txt"]
+    return hashlib.sha256("".join(lines).encode()).hexdigest()
+
+
 def data_source_notes(spec: DataSpec, version: str, date: datetime) -> str:
     """生成数据包的 SOURCE.txt：日期、源码版本和上游数据。
 
@@ -285,6 +305,7 @@ def build_entry(spec: ModelSpec | DataSpec, archive: Path, base_url: str | None)
         "package": spec.package,
         "size": archive.stat().st_size,
         "sha256": sha256_of(archive),
+        "content_sha256": content_sha256(archive),
         "license": spec.license_spdx,
         "upstream": spec.upstream,
     }

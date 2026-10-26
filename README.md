@@ -45,7 +45,7 @@ uv run --project tools/modelconv python tools/export_regions.py \
     --out models/regions/regions.json
 ```
 
-`manifest.json` 的 `models` 里是模型，`data` 里是数据包（`package` 为包里的主数据文件）。
+`manifest.json` 的 `models` 里是模型，`data` 里是数据包（`package` 为包里的主数据文件）。`sha256` 是 zip 的哈希，会随提交号（写在 SOURCE.txt 里）变；`content_sha256` 只算 SOURCE.txt 以外的文件，内容没变就不变，App 用它判断要不要更新。
 
 ## 发布
 
