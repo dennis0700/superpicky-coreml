@@ -1,0 +1,26 @@
+SuperFlier bird flight classifier, EfficientNet-B3 (Core ML, fp16)
+
+Upstream:  SuperFlier, part of SuperPicky by jamesphotography
+           https://github.com/jamesphotography/SuperPicky
+           weights: https://huggingface.co/jamesphotography/SuperPicky-models
+           (superFlier_efficientnet.pth)
+License:   GNU General Public License v3.0 (full text in LICENSE), as declared in the
+           model card of the SuperPicky-models repository (license: gpl-3.0). That
+           declaration covers the whole repository; it is relied on here for this
+           model, which SuperPicky's author published there.
+Architecture: EfficientNet-B3 (torchvision) with a single-logit sigmoid head;
+           definition copied from SuperPicky core/flight_detector.py.
+Training data: not documented upstream.
+
+Changes made by the superpicky-coreml project (GPL-3.0 section 5(a); the date is in
+SOURCE.txt):
+- Converted to a Core ML ML Program (fp16) with coremltools 9.0; the ImageNet
+  mean/std normalization is baked into the graph. Fixed 384x384 input.
+- No retraining or fine-tuning. Weights are the upstream weights stored as fp16.
+
+Corresponding source (GPL-3.0 section 6): the upstream PyTorch weights above and the
+conversion tool tools/modelconv of the superpicky-coreml repository, at the version
+named in SOURCE.txt.
+
+superpicky-coreml is an independent project. It is not affiliated with, sponsored
+or endorsed by SuperPicky.

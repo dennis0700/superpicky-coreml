@@ -1,0 +1,27 @@
+SuperEyes bird keypoint model, ResNet50 PartLocalizer (Core ML, fp16)
+
+Upstream:  SuperEyes, part of SuperPicky by jamesphotography
+           https://github.com/jamesphotography/SuperPicky
+           weights: https://huggingface.co/jamesphotography/SuperPicky-models
+           (cub200_keypoint_resnet50_slim.pth)
+License:   GNU General Public License v3.0 (full text in LICENSE), as declared in the
+           model card of the SuperPicky-models repository (license: gpl-3.0). That
+           declaration covers the whole repository; it is relied on here for this
+           model, which SuperPicky's author published there.
+Architecture: ResNet50 backbone (torchvision) with MLP heads for the left eye, right
+           eye and beak; definition copied from SuperPicky core/keypoint_detector.py.
+Training data: not documented upstream; the file name suggests CUB-200-2011, whose
+           own terms may apply to its images.
+
+Changes made by the superpicky-coreml project (GPL-3.0 section 5(a); the date is in
+SOURCE.txt):
+- Converted to a Core ML ML Program (fp16) with coremltools 9.0; the ImageNet
+  mean/std normalization is baked into the graph. Fixed 416x416 input.
+- No retraining or fine-tuning. Weights are the upstream weights stored as fp16.
+
+Corresponding source (GPL-3.0 section 6): the upstream PyTorch weights above and the
+conversion tool tools/modelconv of the superpicky-coreml repository, at the version
+named in SOURCE.txt.
+
+superpicky-coreml is an independent project. It is not affiliated with, sponsored
+or endorsed by SuperPicky.

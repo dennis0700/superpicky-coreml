@@ -1,0 +1,27 @@
+TOPIQ aesthetic model, CFANet ResNet50 trained on AVA (Core ML, fp16)
+
+Upstream:  Chaofeng Chen et al., IQA-PyTorch (TOPIQ / CFANet)
+           https://github.com/chaofengc/IQA-PyTorch
+           weights: https://huggingface.co/chaofengc/IQA-PyTorch-Weights
+           (cfanet_iaa_ava_res50-3cd62bb3.pth)
+License:   Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+           (CC BY-NC-SA 4.0), https://creativecommons.org/licenses/by-nc-sa/4.0/
+           (legal code in LICENSE)
+
+Changes made by the superpicky-coreml project (indicated as required by CC BY-NC-SA 4.0;
+conversion date, source version and upstream weights in SOURCE.txt):
+- The conversion started from cfanet_iaa_ava_res50_fp16.pth, the fp16 copy of the
+  upstream weights distributed with SuperPicky
+  (https://huggingface.co/jamesphotography/SuperPicky-models), not from the
+  upstream fp32 file.
+- Converted to a Core ML ML Program (fp16) with coremltools 9.0; the ImageNet
+  mean/std normalization is baked into the graph.
+- The bicubic resize of the positional embedding (not supported by coremltools 9.0)
+  is replaced by a precomputed constant. The converted model therefore only
+  accepts a fixed 384x384 input.
+- No retraining or fine-tuning.
+
+ShareAlike: this adapted model is licensed under CC BY-NC-SA 4.0, the same
+license as the original. NonCommercial use only. This restriction applies to
+the model itself; it does not change the license of the conversion code in this
+repository or of applications that load the model.

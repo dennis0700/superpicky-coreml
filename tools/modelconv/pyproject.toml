@@ -1,0 +1,44 @@
+[project]
+name = "modelconv"
+version = "0.1.0"
+description = "superpicky-coreml: PyTorch -> Core ML conversion and asset fetching"
+# archs.py 的 TOPIQ 部分源自 IQA-PyTorch，适用 PolyForm Noncommercial 1.0.0；其余为 AGPL-3.0
+# the TOPIQ part of archs.py comes from IQA-PyTorch (PolyForm Noncommercial 1.0.0); the rest is AGPL-3.0
+license = "AGPL-3.0-only AND LicenseRef-PolyForm-Noncommercial-1.0.0"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    # coremltools 9.0 officially supports torch 2.7 (release notes); torchvision 0.22.1 pins torch==2.7.1
+    "coremltools==9.0",
+    "torch==2.7.1",
+    "torchvision==0.22.1",
+    # same version as SuperPicky
+    "ultralytics==8.4.147",
+    "timm==1.0.30",
+    "safetensors==0.8.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==8.4.2",
+    "ruff==0.17.2",
+]
+
+[build-system]
+requires = ["uv_build==0.13.5"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+# vendored third-party model definitions are kept verbatim
+extend-exclude = ["src/modelconv/archs.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ANN", "D"]
+ignore = ["D203", "D213", "D400", "D415"]  # D400/D415: Chinese docstrings end with "。"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D", "ANN"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

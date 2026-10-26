@@ -1,0 +1,12 @@
+.DS_Store
+__pycache__/
+.venv/
+.ruff_cache/
+.pytest_cache/
+
+/dist/
+
+/models/coreml/
+/models/*.pt
+/models/*.pth
+/models/birdtrace/model.safetensors

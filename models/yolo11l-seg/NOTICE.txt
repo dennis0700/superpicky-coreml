@@ -1,0 +1,17 @@
+yolo11l-seg (Core ML, fp16)
+
+Upstream:  Ultralytics YOLO11, yolo11l-seg.pt
+           https://github.com/ultralytics/ultralytics
+Copyright: Ultralytics
+License:   GNU Affero General Public License v3.0 (see LICENSE in this directory)
+
+Changes made by the superpicky-coreml project (AGPL-3.0 section 5(a); the date is in
+SOURCE.txt):
+- Converted to a Core ML ML Program (fp16) with the Ultralytics exporter (coremltools 9.0, nms=False);
+  the two outputs are renamed to "detections" and "protos".
+- No retraining or fine-tuning. Weights are the upstream weights stored as fp16.
+
+This converted model is distributed under the same license as the upstream
+weights (AGPL-3.0). Corresponding source (AGPL-3.0 section 6): the upstream
+yolo11l-seg.pt and the conversion tool tools/modelconv of the superpicky-coreml
+repository, at the version named in SOURCE.txt.

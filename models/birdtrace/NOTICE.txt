@@ -1,0 +1,37 @@
+BirdTrace FastViT-MA36-10K (Core ML, fp16)
+
+Upstream:  BirdTrace FastViT-MA36 by the BirdTrace project (https://birdtrace.org),
+           published by warden123 at
+           https://huggingface.co/warden123/BirdTrace-FastViT-MA36-10K
+License:   Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)
+           https://creativecommons.org/licenses/by-nc/4.0/ (legal code in LICENSE)
+Architecture: FastViT by Pavan Kumar Anasosalu Vasu, James Gabriel, Jeff Zhu, Oncel Tuzel
+           and Anurag Ranjan (ICCV 2023), https://github.com/apple/ml-fastvit; the
+           upstream attribution and license notices are in THIRD_PARTY_NOTICES.txt
+           (an unmodified copy of the upstream file). The conversion uses the timm
+           implementation of FastViT (Apache-2.0).
+
+Changes made by the superpicky-coreml project (indicated as required by CC BY-NC 4.0
+section 3(a)(1)(B); conversion date, source version and upstream weights in SOURCE.txt):
+- Loaded the released model.safetensors strictly and reparameterized the FastViT blocks.
+- Converted to a Core ML ML Program (fp16) with coremltools 9.0; the ImageNet
+  mean/std normalization is baked into the graph.
+- No retraining or fine-tuning.
+
+NonCommercial: this model may be used, copied and shared for NonCommercial
+purposes only. It must not be used for commercial purposes; commercial use needs
+separate authorization from the rights holders. This restriction applies to
+the model itself; it does not change the license of the conversion code in this
+repository or of applications that load the model.
+
+superpicky-coreml is an independent project. It is not affiliated with, sponsored
+or endorsed by BirdTrace, the FastViT authors or SuperPicky.
+
+Data files from SuperPicky (https://github.com/jamesphotography/SuperPicky),
+licensed under GNU AGPL-3.0 (full text in LICENSE-AGPL-3.0.txt), not CC BY-NC 4.0:
+- birdtrace_class_map.json: maps the model's 10480 outputs to SuperPicky's species
+  database ids; unmodified copy of birdid/data/birdtrace_class_map.json at commit
+  a36193db176de7393dadbd69bfe87a9e34970327.
+- species_names.json: Chinese, English and scientific names per species-database id,
+  exported from SuperPicky's birdid/data/bird_reference.sqlite with
+  tools/export_species_names.py on 2026-10-24 (AGPL-3.0 section 5(a)).

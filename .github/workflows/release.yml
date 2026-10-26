@@ -1,0 +1,76 @@
+# 推送 v* tag 时转换、打包并发布到同名 Release / On a v* tag, convert, package and publish to that Release.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "已有的 tag，例如 v1.0.0 / An existing tag, e.g. v1.0.0"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+      UV_PYTHON: "3.13"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TAG }}
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.13.5"
+          working-directory: tools/modelconv
+
+      - name: Lint and test
+        working-directory: tools/modelconv
+        run: |
+          uv sync --locked
+          uv run ruff check .
+          uv run ruff check --config pyproject.toml ../package_models.py ../export_species_names.py
+          uv run pytest
+
+      - name: Download weights
+        run: uv run --project tools/modelconv python -m modelconv.fetch_models
+
+      - name: Convert
+        run: uv run --project tools/modelconv python -m modelconv.convert_all
+
+      # SOURCE.txt 记录的提交必须就是发布的这个 / SOURCE.txt must name exactly the commit being released
+      - name: Check the working tree is clean
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git status --porcelain
+            echo "::error::the build changed tracked files"
+            exit 1
+          fi
+
+      - name: Package
+        run: |
+          uv run --project tools/modelconv python tools/package_models.py \
+            --base-url "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}"
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/*.zip dist/manifest.json --clobber
+          else
+            gh release create "$TAG" dist/*.zip dist/manifest.json --title "$TAG" --notes \
+              "Core ML (fp16) conversions of the models used by SuperPicky. Each zip contains the model, its LICENSE, NOTICE.txt and SOURCE.txt; sizes and sha256 are in manifest.json."
+          fi
