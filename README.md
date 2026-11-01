@@ -57,6 +57,16 @@ git tag v1.0.0 && git push origin v1.0.0
 
 同一个提交重复构建，产物逐字节相同。
 
+## 上游更新检查
+
+`check-upstream` workflow 每天 02:17 UTC 运行（也可在 Actions 页面手动触发）：比对 Hugging Face 上权重的 sha256，并用 SuperPicky 最新提交重新导出鸟名表、地区名录和类别表。有变化就开一个带 `upstream` 标签的 issue（已有未关闭的则更新内容）。按上面的步骤更新仓库、打 tag 发版后关闭该 issue。
+
+只检查权重：
+
+```sh
+uv run --no-project python tools/check_upstream.py   # 无输出表示没变
+```
+
 ## 测试
 
 ```sh

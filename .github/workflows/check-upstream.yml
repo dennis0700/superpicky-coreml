@@ -1,0 +1,76 @@
+# 每天检查上游权重和 SuperPicky 数据，有变化就开（或更新）一个 upstream issue / Daily check of upstream weights and SuperPicky data; opens or updates an "upstream" issue on changes.
+name: Check upstream
+
+on:
+  schedule:
+    - cron: "17 2 * * *"   # 每天 02:17 UTC / daily at 02:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: check-upstream
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      UV_PYTHON: "3.13"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.13.5"
+
+      # 用 SuperPicky 最新提交重新导出，和仓库里的文件不同就说明上游数据变了 / re-export from SuperPicky's latest commit; any diff means the upstream data changed
+      - name: Re-export SuperPicky data
+        run: |
+          git clone --depth 1 https://github.com/jamesphotography/SuperPicky "$RUNNER_TEMP/SuperPicky"
+          echo "SUPERPICKY_COMMIT=$(git -C "$RUNNER_TEMP/SuperPicky" rev-parse HEAD)" >> "$GITHUB_ENV"
+          data="$RUNNER_TEMP/SuperPicky/birdid/data"
+          uv run --no-project python tools/export_species_names.py \
+            --db "$data/bird_reference.sqlite" --out models/birdtrace/species_names.json
+          uv run --no-project python tools/export_regions.py \
+            --db "$data/ebird_regions.db" --out models/regions/regions.json
+          cp "$data/birdtrace_class_map.json" models/birdtrace/birdtrace_class_map.json
+
+      - name: Compare
+        id: compare
+        run: |
+          weights=$(uv run --no-project python tools/check_upstream.py)
+          data=$(git diff --stat -- models)
+          if [ -z "$weights$data" ]; then
+            echo "Upstream unchanged." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          report="$RUNNER_TEMP/report.md"
+          {
+            echo "上游有更新（检查于 $(date -u +%F)，SuperPicky ${SUPERPICKY_COMMIT}）。按 README 更新仓库后发版，再关闭本 issue。"
+            if [ -n "$weights" ]; then printf '\n### 权重 / Weights\n\n%s\n' "$weights"; fi
+            if [ -n "$data" ]; then printf '\n### 数据 / Data\n\n```\n%s\n```\n' "$data"; fi
+          } > "$report"
+          cat "$report" >> "$GITHUB_STEP_SUMMARY"
+          echo "report=$report" >> "$GITHUB_OUTPUT"
+
+      # 已有未关闭的 upstream issue 就更新内容，避免每天开新的 / update the open issue instead of opening one per day
+      - name: Open or update issue
+        if: steps.compare.outputs.report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          REPORT: ${{ steps.compare.outputs.report }}
+        run: |
+          gh label create upstream --color FBCA04 --description "Upstream models or data changed" --force
+          number=$(gh issue list --label upstream --state open --json number --jq '.[0].number')
+          if [ -n "$number" ]; then
+            gh issue edit "$number" --body-file "$REPORT"
+          else
+            gh issue create --title "上游模型或数据有更新 / Upstream changed" --label upstream --body-file "$REPORT"
+          fi
