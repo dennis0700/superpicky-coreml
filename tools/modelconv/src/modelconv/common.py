@@ -3,6 +3,7 @@
 import json
 import uuid
 from collections.abc import MutableMapping
+from datetime import UTC, datetime
 from pathlib import Path
 
 import coremltools as ct
@@ -10,13 +11,15 @@ import torch
 from coremltools.proto import Model_pb2
 from torch import nn
 
-from modelconv.buildinfo import source_date
-
 ROOT = Path(__file__).resolve().parents[4]
 MODELS = ROOT / "models"
 COREML_DIR = MODELS / "coreml"
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
+# 写进模型元数据的固定日期，不随提交变，content_sha256 才只取决于权重和转换代码（取 v1.1.1 的值）；
+# 实际的修改日期在 SOURCE.txt 里 / a fixed date for the model metadata so content_sha256 depends only on the
+# weights and conversion code (v1.1.1's value); the actual modification date is in SOURCE.txt
+CONVERSION_DATE = datetime(2026, 10, 26, 10, 24, 32, tzinfo=UTC)
 
 
 class Normalized(nn.Module):
@@ -35,16 +38,15 @@ class Normalized(nn.Module):
 
 
 def pin_metadata(metadata: MutableMapping[str, str]) -> None:
-    """Replace the conversion timestamps coremltools and Ultralytics record with the source date.
+    """Replace the conversion timestamps coremltools and Ultralytics record with CONVERSION_DATE.
 
     Args:
         metadata: The model's user-defined metadata.
 
     """
-    date = source_date()
-    metadata["com.github.apple.coremltools.conversion_date"] = date.date().isoformat()
+    metadata["com.github.apple.coremltools.conversion_date"] = CONVERSION_DATE.date().isoformat()
     if "date" in metadata:  # written by the Ultralytics exporter
-        metadata["date"] = date.isoformat()
+        metadata["date"] = CONVERSION_DATE.isoformat()
 
 
 def make_reproducible(package: Path) -> None:
